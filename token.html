@@ -52,37 +52,54 @@
     const auth = localStorage.getItem("auth");
     if (auth !== "true") window.location.href = "login.html";
 
-    const firebaseBase = "https://bossdv-72d16-default-rtdb.firebaseio.com/tokens ";
+   const firebaseBase = "https://bossdv-72d16-default-rtdb.firebaseio.com/tokens ";
 
-    async function carregarTokens() {
-      try {
-        const res = await fetch(firebaseBase);
-        const data = await res.json();
-      console.log("Dados recebidos:", data);
+async function carregarTokens() {
+  const tbody = document.querySelector("#tokensTable tbody");
 
-        const tbody = document.querySelector("#tokensTable tbody");
-        tbody.innerHTML = "";
+  try {
+    const resposta = await fetch(firebaseBase + ".json"); // Adicionamos .json aqui
+    const dados = await resposta.json();
 
-        if (!data) return;
+    console.log("Dados recebidos:", dados);
 
-        for (const token in data) {
-          const item = data[token];
-          if (item.valid && new Date(item.expire_at) > new Date()) {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-              <td>${item.nome || "-"}</td>
-              <td>${item.expire_at}</td>
-              <td><small>${token}</small></td>
-            `;
-            tbody.appendChild(row);
-          }
-        }
+    if (!dados || Object.keys(dados).length === 0) {
+      tbody.innerHTML = "<tr><td colspan='3'>Nenhum token encontrado.</td></tr>";
+      return;
+    }
 
-      } catch (e) {
-        console.error("Erro ao carregar tokens:", e);
+    let tokensAtivos = false;
+
+    for (let token in dados) {
+      const item = dados[token];
+
+      if (
+        item &&
+        item.valid === true &&
+        item.expire_at &&
+        new Date(item.expire_at) > new Date()
+      ) {
+        tokensAtivos = true;
+
+        const linha = document.createElement("tr");
+        linha.innerHTML = `
+          <td>${item.nome}</td>
+          <td>${item.expire_at}</td>
+          <td><small>${token}</small></td>
+        `;
+        tbody.appendChild(linha);
       }
     }
 
+    if (!tokensAtivos) {
+      tbody.innerHTML = "<tr><td colspan='3'>Nenhum token ativo encontrado.</td></tr>";
+    }
+
+  } catch (e) {
+    console.error("Erro ao carregar tokens:", e);
+    tbody.innerHTML = "<tr><td colspan='3'>Erro ao carregar tokens.</td></tr>";
+  }
+}
     window.onload = carregarTokens;
   </script>
 
