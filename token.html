@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tokens Ativos - BossDV</title>
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+    }
+    h1 {
+      color: #4caf50;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #444;
+      text-align: left;
+    }
+    th {
+      background-color: #1e1e1e;
+    }
+    tr:hover {
+      background-color: #222;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Tokens Ativos</h1>
+  <button onclick="window.location.href='index.html'">Voltar</button>
+
+  <table id="tokensTable">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Expira em</th>
+        <th>Token</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    // Verifica se veio autenticado
+    const auth = localStorage.getItem("auth");
+    if (auth !== "true") window.location.href = "login.html";
+
+    const firebaseBase = "https://bossdv-72d16-default-rtdb.firebaseio.com/tokens.json ";
+
+    async function carregarTokens() {
+      try {
+        const res = await fetch(firebaseBase);
+        const data = await res.json();
+
+        const tbody = document.querySelector("#tokensTable tbody");
+        tbody.innerHTML = "";
+
+        if (!data) return;
+
+        for (const token in data) {
+          const item = data[token];
+          if (item.valid && new Date(item.expire_at) > new Date()) {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${item.nome || "-"}</td>
+              <td>${item.expire_at}</td>
+              <td><small>${token}</small></td>
+            `;
+            tbody.appendChild(row);
+          }
+        }
+
+      } catch (e) {
+        console.error("Erro ao carregar tokens:", e);
+      }
+    }
+
+    window.onload = carregarTokens;
+  </script>
+
+</body>
+</html>

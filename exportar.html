@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Exportar Tokens - BossDV</title>
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 20px;
+      text-align: center;
+    }
+    button {
+      background-color: #4caf50;
+      color: white;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #43a047;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Exportar Tokens</h1>
+  <button onclick="exportarJSON()">Baixar tokens.json</button>
+  <p><a href="index.html">← Voltar</a></p>
+
+  <script>
+    const auth = localStorage.getItem("auth");
+    if (auth !== "true") window.location.href = "login.html";
+
+    const firebaseBase = "https://bossdv-72d16-default-rtdb.firebaseio.com/tokens.json ";
+
+    async function exportarJSON() {
+      try {
+        const res = await fetch(firebaseBase);
+        const tokens = await res.json();
+
+        const blob = new Blob([JSON.stringify(tokens, null, 2)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "tokens.json";
+        link.click();
+      } catch (e) {
+        alert("Erro ao exportar tokens.");
+      }
+    }
+  </script>
+
+</body>
+</html>
