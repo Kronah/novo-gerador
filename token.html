@@ -58,6 +58,7 @@
       try {
         const res = await fetch(firebaseBase);
         const data = await res.json();
+      console.log("Dados recebidos:", data);
 
         const tbody = document.querySelector("#tokensTable tbody");
         tbody.innerHTML = "";
