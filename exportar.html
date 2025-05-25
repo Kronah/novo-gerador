@@ -8,13 +8,13 @@
       background: #121212;
       color: #eee;
       font-family: 'Segoe UI', sans-serif;
-      padding: 20px;
+      padding: 40px;
       text-align: center;
     }
     button {
       background-color: #4caf50;
       color: white;
-      padding: 10px 20px;
+      padding: 12px 24px;
       font-size: 1rem;
       border: none;
       border-radius: 6px;
@@ -22,6 +22,12 @@
     }
     button:hover {
       background-color: #43a047;
+    }
+    a {
+      display: block;
+      margin-top: 20px;
+      color: #999;
+      text-decoration: none;
     }
   </style>
 </head>
@@ -39,8 +45,13 @@
 
     async function exportarJSON() {
       try {
-        const res = await fetch(firebaseBase);
-        const tokens = await res.json();
+        const resposta = await fetch(firebaseBase + ".json");
+
+        if (!resposta.ok) {
+          throw new Error("Erro ao carregar dados do Firebase");
+        }
+
+        const tokens = await resposta.json();
 
         const blob = new Blob([JSON.stringify(tokens, null, 2)], { type: "application/json" });
         const link = document.createElement("a");
@@ -48,7 +59,7 @@
         link.download = "tokens.json";
         link.click();
       } catch (e) {
-        alert("Erro ao exportar tokens.");
+        alert("Erro ao exportar tokens: " + e.message);
       }
     }
   </script>
