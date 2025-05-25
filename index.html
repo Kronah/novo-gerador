@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gerador de Tokens - BossDV</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      position: relative;
+    }
+    h1 {
+      color: #4caf50;
+      margin-bottom: 10px;
+    }
+    label, input, button {
+      font-size: 1rem;
+      margin: 8px 0;
+    }
+    input, button {
+      padding: 10px;
+      border-radius: 6px;
+      border: none;
+    }
+    input {
+      width: 250px;
+      text-transform: uppercase;
+    }
+    button {
+      background-color: #4caf50;
+      color: #121212;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #43a047;
+    }
+    #output {
+      margin-top: 20px;
+      background: #222;
+      padding: 15px;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 350px;
+      word-break: break-all;
+      font-family: monospace;
+    }
+
+    /* Overlay escuro */
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 999;
+    }
+
+    /* Popup centralizado */
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #1e1e1e;
+      border: 2px solid #4caf50;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      width: 90%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .popup h2 {
+      margin-top: 0;
+      font-size: 1.2em;
+      color: #4caf50;
+    }
+
+    .popup textarea {
+      width: 100%;
+      height: 80px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 0.9em;
+      border: 1px solid #444;
+      background: #111;
+      color: #fff;
+      resize: none;
+      border-radius: 5px;
+    }
+
+    .popup button {
+      align-self: flex-end;
+      background-color: #4caf50;
+      color: #121212;
+      width: auto;
+      padding: 8px 16px;
+    }
+
+    footer {
+      margin-top: auto;
+      font-size: 0.8rem;
+      color: #555;
+      user-select: none;
+    }
+
+    /* Toast */
+    #toast {
+      visibility: hidden;
+      min-width: 250px;
+      background: #333;
+      color: #fff;
+      text-align: center;
+      border-radius: 5px;
+      padding: 12px;
+      position: fixed;
+      z-index: 10;
+      left: 50%;
+      bottom: 30px;
+      margin-left: -125px;
+      opacity: 0;
+      transition: opacity 0.5s, visibility 0.5s;
+    }
+
+    #toast.show {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    #toast.success {
+      background-color: #4caf50;
+    }
+
+    #toast.error {
+      background-color: #e53935;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Gerador de Tokens - BossDV</h1>
+
+  <label for="nome">Nome:</label>
+  <input type="text" id="nome" placeholder="Digite o nome" oninput="this.value = this.value.toUpperCase()" />
+
+  <label for="dias">Validade do token (dias):</label>
+  <input type="number" id="dias" min="1" max="365" value="30" />
+
+  <button onclick="gerarToken()">Gerar Token</button>
+  <button onclick="sair()" style="margin-top: 10px;">Sair</button>
+
+  <div id="output"></div>
+
+  <footer>Desenvolvido por Kronah © 2025</footer>
+
+  <!-- Overlay + Popup -->
+  <div class="overlay" id="popupOverlay">
+    <div class="popup" id="tokenPopup">
+      <h2>Token Gerado</h2>
+      <textarea id="tokenDisplay" readonly></textarea>
+      <button onclick="copiarToken()">Copiar Token</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <script>
+    // Verifica autenticação
+    const auth = localStorage.getItem("auth");
+    if (auth !== "true") {
+      window.location.href = "login.html";
+    }
+
+    const firebaseBase = "https://bossdv-72d16-default-rtdb.firebaseio.com/tokens ";
+
+    function formatarData(data) {
+      return new Intl.DateTimeFormat('pt-BR').format(new Date(data));
+    }
+
+    function gerarUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0,
+              v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    }
+
+    async function gerarToken() {
+      const diasValidade = parseInt(document.getElementById('dias').value) || 30;
+      const nomeInput = document.getElementById('nome');
+      const nome = nomeInput.value.trim().toUpperCase();
+
+      const output = document.getElementById('output');
+
+      if (!nome) {
+        mostrarToast("Erro: O campo Nome é obrigatório.", "error");
+        return;
+      }
+
+      try {
+        const urlBusca = `https://bossdv-72d16-default-rtdb.firebaseio.com/tokens.json?orderBy= "nome"&equalTo="${encodeURIComponent(nome)}"`;
+        const buscaNomeRes = await fetch(urlBusca);
+
+        if (!buscaNomeRes.ok) throw new Error(`Erro na requisição ao Firebase: ${buscaNomeRes.status}`);
+
+        const buscaNomeData = await buscaNomeRes.json();
+
+        if (buscaNomeData && typeof buscaNomeData === 'object' && Object.keys(buscaNomeData).length > 0) {
+          mostrarToast("Este nome já está cadastrado.", "error");
+          return;
+        }
+
+        const token = gerarUUID();
+        const hoje = new Date();
+        const dataExpira = new Date(hoje.getTime() + diasValidade * 24 * 60 * 60 * 1000);
+        const expire_at = dataExpira.toISOString().split('T')[0];
+        const device_id = gerarUUID();
+
+        const tokenObj = {
+          valid: true,
+          expire_at: expire_at,
+          device_id: device_id,
+          nome: nome
+        };
+
+        const res = await fetch(`${firebaseBase}/${token}.json`, {
+          method: 'PUT',
+          body: JSON.stringify(tokenObj),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!res.ok) throw new Error(`Erro ao salvar no Firebase: ${res.status}`);
+
+        document.getElementById('tokenDisplay').value = token;
+        document.getElementById('popupOverlay').style.display = 'block';
+        mostrarToast("Token gerado com sucesso!", "success");
+
+      } catch (e) {
+        console.error('Erro:', e);
+        mostrarToast("Erro ao gerar token: " + e.message, "error");
+      }
+    }
+
+    function copiarToken() {
+      const tokenField = document.getElementById('tokenDisplay');
+      tokenField.select();
+      tokenField.setSelectionRange(0, 99999);
+      document.execCommand("copy");
+      mostrarToast("Token copiado!", "success");
+    }
+
+    function mostrarToast(mensagem, tipo = "success") {
+      const toast = document.getElementById("toast");
+      toast.className = "show";
+      toast.className = `show ${tipo}`;
+      toast.innerText = mensagem;
+
+      setTimeout(() => {
+        toast.className = toast.className.replace("show", "");
+      }, 3000);
+    }
+
+    function sair() {
+      if (confirm("Tem certeza que deseja sair?")) {
+        localStorage.removeItem("auth");
+        window.location.href = "login.html";
+      }
+    }
+
+    // Fechar popup ao clicar fora
+    document.getElementById('popupOverlay').addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.style.display = 'none';
+      }
+    });
+  </script>
+
+</body>
+</html>
