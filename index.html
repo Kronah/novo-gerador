@@ -102,14 +102,6 @@
       border-radius: 5px;
     }
 
-    .popup button {
-      align-self: flex-end;
-      background-color: #4caf50;
-      color: #121212;
-      width: auto;
-      padding: 8px 16px;
-    }
-
     footer {
       margin-top: auto;
       font-size: 0.8rem;
@@ -117,35 +109,32 @@
       user-select: none;
     }
 
-    /* Toast */
-    #toast {
-      visibility: hidden;
-      min-width: 250px;
-      background: #333;
-      color: #fff;
+    #navegacao {
+      margin-top: 30px;
       text-align: center;
-      border-radius: 5px;
-      padding: 12px;
-      position: fixed;
-      z-index: 10;
-      left: 50%;
-      bottom: 30px;
-      margin-left: -125px;
-      opacity: 0;
-      transition: opacity 0.5s, visibility 0.5s;
     }
 
-    #toast.show {
-      visibility: visible;
-      opacity: 1;
+    #navegacao h2 {
+      font-size: 1.2em;
+      color: #90caf9;
+      margin-bottom: 15px;
     }
 
-    #toast.success {
-      background-color: #4caf50;
+    #navegacao button {
+      margin: 10px;
+      padding: 10px 20px;
+      background-color: #66bb6a;
+      color: #121212;
+      font-weight: bold;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.3s;
     }
 
-    #toast.error {
-      background-color: #e53935;
+    #navegacao button:hover {
+      background-color: #43a047;
     }
   </style>
 </head>
@@ -178,12 +167,16 @@
   <!-- Toast -->
   <div id="toast"></div>
 
+  <!-- Navegação -->
+  <div id="navegacao">
+    <h2>Opções Adicionais</h2>
+    <button onclick="window.location.href='tokens.html'">Listar Tokens Ativos</button>
+    <button onclick="window.location.href='exportar.html'">Exportar Tokens (.json)</button>
+  </div>
+
   <script>
-    // Verifica autenticação
     const auth = localStorage.getItem("auth");
-    if (auth !== "true") {
-      window.location.href = "login.html";
-    }
+    if (auth !== "true") window.location.href = "login.html";
 
     const firebaseBase = "https://bossdv-72d16-default-rtdb.firebaseio.com/tokens ";
 
@@ -260,7 +253,7 @@
     function copiarToken() {
       const tokenField = document.getElementById('tokenDisplay');
       tokenField.select();
-      tokenField.setSelectionRange(0, 99999);
+      tokenField.setSelectionRange(0, 99999); // Para mobile
       document.execCommand("copy");
       mostrarToast("Token copiado!", "success");
     }
@@ -283,7 +276,6 @@
       }
     }
 
-    // Fechar popup ao clicar fora
     document.getElementById('popupOverlay').addEventListener('click', function(e) {
       if (e.target === this) {
         this.style.display = 'none';
