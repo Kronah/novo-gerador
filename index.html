@@ -54,7 +54,6 @@
       font-family: monospace;
     }
 
-    /* Overlay escuro */
     .overlay {
       display: none;
       position: fixed;
@@ -64,7 +63,6 @@
       z-index: 999;
     }
 
-    /* Popup centralizado */
     .popup {
       position: fixed;
       top: 50%;
@@ -155,7 +153,6 @@
 
   <footer>Desenvolvido por Kronah © 2025</footer>
 
-  <!-- Overlay + Popup -->
   <div class="overlay" id="popupOverlay">
     <div class="popup" id="tokenPopup">
       <h2>Token Gerado</h2>
@@ -164,10 +161,8 @@
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="toast"></div>
 
-  <!-- Navegação -->
   <div id="navegacao">
     <h2>Opções Adicionais</h2>
     <button onclick="window.location.href='tokens.html'">Listar Tokens Ativos</button>
@@ -178,7 +173,7 @@
     const auth = localStorage.getItem("auth");
     if (auth !== "true") window.location.href = "login.html";
 
-    const firebaseBase = "https://bossdv-72d16-default-rtdb.firebaseio.com/tokens ";
+    const firebaseBase = "https://bossdv-72d16-default-rtdb.firebaseio.com/tokens/";
 
     function formatarData(data) {
       return new Intl.DateTimeFormat('pt-BR').format(new Date(data));
@@ -205,40 +200,48 @@
       }
 
       try {
-        const urlBusca = `https://bossdv-72d16-default-rtdb.firebaseio.com/tokens.json?orderBy= "nome"&equalTo="${encodeURIComponent(nome)}"`;
+        // Verificar se já existe um token para esse nome/dispositivo
+        const device_id = gerarUUID(); // Usando um novo device_id ou pode armazenar um já existente
+        const urlBusca = `https://bossdv-72d16-default-rtdb.firebaseio.com/tokens.json?orderBy="nome"&equalTo="${encodeURIComponent(nome)}"`;
         const buscaNomeRes = await fetch(urlBusca);
 
         if (!buscaNomeRes.ok) throw new Error(`Erro na requisição ao Firebase: ${buscaNomeRes.status}`);
 
         const buscaNomeData = await buscaNomeRes.json();
 
-        if (buscaNomeData && typeof buscaNomeData === 'object' && Object.keys(buscaNomeData).length > 0) {
-          mostrarToast("Este nome já está cadastrado.", "error");
-          return;
+        let token = '';
+        if (buscaNomeData && Object.keys(buscaNomeData).length > 0) {
+          // Se o nome já tem um token gerado, reutilize o token existente
+          const [existingToken] = Object.values(buscaNomeData);
+          if (existingToken.device_id === device_id) {
+            token = existingToken.token;  // Reutilizando token existente para o mesmo device_id
+          } else {
+            mostrarToast("Este nome já tem um token, mas para um dispositivo diferente.", "error");
+            return;
+          }
         }
 
-        const token = gerarUUID();
-        const hoje = new Date();
-        const dataExpira = new Date(hoje.getTime() + diasValidade * 24 * 60 * 60 * 1000);
-        const expire_at = dataExpira.toISOString().split('T')[0];
-        const device_id = gerarUUID();
+        if (!token) {
+          // Se não encontrou um token existente, cria um novo
+          token = gerarUUID();
+          const hoje = new Date();
+          const dataExpira = new Date(hoje.getTime() + diasValidade * 24 * 60 * 60 * 1000);
+          const expire_at = dataExpira.toISOString().split('T')[0];
 
-        const tokenObj = {
-          valid: true,
-          expire_at: expire_at,
-          device_id: device_id,
-          nome: nome
-        };
+          const tokenObj = {
+            valid: true,
+            expire_at: expire_at,
+            device_id: device_id,
+            nome: nome,
+            token: token
+          };
 
-        const res = await fetch(`${firebaseBase}/${token}.json`, {
-          method: 'PUT',
-          body: JSON.stringify(tokenObj),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (!res.ok) throw new Error(`Erro ao salvar no Firebase: ${res.status}`);
+          await fetch(`${firebaseBase}/${token}.json`, {
+            method: 'PUT',
+            body: JSON.stringify(tokenObj),
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
 
         document.getElementById('tokenDisplay').value = token;
         document.getElementById('popupOverlay').style.display = 'block';
